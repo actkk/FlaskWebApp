@@ -16,9 +16,10 @@ class User(db.Model):
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
 
+
 class Online_users(db.Model):
     __tablename__ = 'online_users'
-
-    username = db.Column(db.String, nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     ipaddress = db.Column(db.String, nullable=False)
-    logindatetime = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    logindatetime = db.Column(db.DateTime,  nullable=False)
