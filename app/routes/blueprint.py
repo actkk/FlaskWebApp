@@ -1,11 +1,12 @@
-from flask import Blueprint, render_template, flash
-from flask import render_template, request, redirect, url_for
-from app.services.user_services import get_all_users, clear_session, remove_online_user, user_login, get_online_users, create_new_user, remove_user_from_db
-from app.services.general_services import is_valid_password , is_valid_email
+from flask import render_template, request, Blueprint
+from app.services.user_services import get_all_users, clear_session, remove_online_user, user_login, get_online_users, \
+    create_new_user, remove_user_from_db, update_user, check_username_exists
+from app.services.general_services import is_valid_password, is_valid_email
+
 user_blueprint = Blueprint('user', __name__, template_folder='templates', static_folder='static')
 
 
-
+# todo yanlış ve geçersiz şifre email girişlerinde responsları düzenle
 
 @user_blueprint.route('/user/list')
 def user_list():
@@ -16,7 +17,8 @@ def user_list():
 @user_blueprint.route('/user/create', methods=['GET', 'POST'])
 def create_user():
     if request.method == 'POST':
-        # Extract data from form
+        # Extract data from
+        # todo requesti service kısmında hallet
         username = request.form['username']
         firstname = request.form['firstname']
         middlename = request.form.get('middlename')
@@ -25,18 +27,15 @@ def create_user():
         email = request.form['email']
         password = request.form['password']
         if not is_valid_email(email):
-            flash('Invalid email address', 'error')
-            return render_template('create_user.html')
+            return "Invalid email address"
         if not is_valid_password(password):
-            flash('Invalid password', 'error')
-            return render_template('create_user.html')
-        # Delegate the creation logic to the service
+            return "Invalid password"
+        if check_username_exists(username):
+            return "Username already exists"
         user_created = create_new_user(username, firstname, middlename, lastname, birthdate, email, password)
 
         if user_created:
-            return redirect("/user/list")
-
-        # Handle the case where user creation fails, if necessary
+            return "User created successfully"
 
     return render_template('create_user.html')
 
@@ -52,37 +51,43 @@ def login():
         success, message = user_login(email, password)
 
         if success:
-            # Redirect to a home page or dashboard after successful login
-            return redirect("/onlineusers")
+            return "User logged in", 200
         else:
-            # Flash a message and re-render the login page if login fails
-            flash(message)
-            return redirect("/user/list")
+            return message
 
-    # Render the login page for GET requests
     return render_template('login.html')
+
 
 @user_blueprint.route('/onlineusers')
 def onlineusers():
-    return render_template('onlineusers.html',users=get_online_users())
-
+    return render_template('onlineusers.html', users=get_online_users())
 
 
 @user_blueprint.route('/logout', methods=['GET', 'POST'])
 def logout():
     if request.method == 'POST':
         if remove_online_user():
-            print("User successfully removed from online users.")
+            clear_session()
+            return "User successfully removed from online users.", 200
         else:
-            print("Error in removing user from online users.")
+            return "Error in removing user from online users."
 
-        clear_session()
-        return redirect('/onlineusers')  # Redirect to login page or home page
-
-    # Render the logout page with a button for GET request
     return render_template('logout.html')
 
 
-@user_blueprint.route('/user/delete/<int:user_id>', methods=['POST'])
+@user_blueprint.route('/user/delete/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     return remove_user_from_db(user_id)
+
+
+@user_blueprint.route('/user/update/<int:user_id>', methods=['PUT'])
+def update_user_route(user_id):
+    data = request.json
+
+    message = update_user(user_id, data)
+    return message
+
+
+@user_blueprint.route('/')
+def home():
+    return render_template('home.html')

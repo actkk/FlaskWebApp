@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -22,4 +23,4 @@ class Online_users(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     ipaddress = db.Column(db.String, nullable=False)
-    logindatetime = db.Column(db.DateTime,  nullable=False)
+    logindatetime = db.Column(db.DateTime, nullable=False)

@@ -2,7 +2,6 @@ import hashlib
 import re
 import uuid
 
-import bcrypt
 
 def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -21,14 +20,11 @@ def is_valid_password(password):
         return False
 
 
-
-
-
-def hashText(text):
+def hash_text(text):
     salt = uuid.uuid4().hex
     return hashlib.sha256(salt.encode() + text.encode()).hexdigest() + ':' + salt
 
 
-def checkHashedText(hashedText, providedText):
-    _hashedText, salt = hashedText.split(':')
-    return _hashedText == hashlib.sha256(salt.encode() + providedText.encode()).hexdigest()
+def check_hashed_text(hashed_text, provided_text):
+    _hashedText, salt = hashed_text.split(':')
+    return _hashedText == hashlib.sha256(salt.encode() + provided_text.encode()).hexdigest()

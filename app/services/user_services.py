@@ -1,29 +1,20 @@
-from flask import jsonify
-from sqlalchemy.exc import SQLAlchemyError
-
-import app
 from flask import session, request
 from datetime import datetime
 import pytz
-from werkzeug.security import generate_password_hash, check_password_hash
 from app.models.dbmodel import User, db, Online_users
-import re
-from app.services.general_services import hashText, checkHashedText
+from app.services.general_services import hash_text, check_hashed_text, is_valid_password
+from app.log.logger import log
 
 
 def create_logic():
     try:
         db.create_all()
         db.session.commit()
+        log("Successfully db created")
         return "table created successfully"
+
     except Exception as e:
         return "tables not created"
-
-
-def is_valid_email(email):
-    # Define a simple regular expression for email validation
-    email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    return re.match(email_regex, email)
 
 
 def get_all_users():
@@ -37,7 +28,7 @@ def get_all_users():
          "email": u[6]}
         for u in user_data
     ]
-
+    log("Successfully fetched all users")
     return users
 
 
@@ -48,21 +39,19 @@ def get_online_users():
         Online_users.ipaddress,
         Online_users.logindatetime
     ).join(User, Online_users.userId == User.id).all()
+    log("Successfully fetched online users")
 
     return online_users
 
 
-# todo create new user with hash
 def create_new_user(username, firstname, middlename, lastname, birthdate, email, password):
-    # Check if user already exists
+
     existing_user = db.session.query(User).filter(User.username == username).first()
     if existing_user:
-        return None  # or you can raise an exception
+        return None
 
-    # Hash the password
-    hashed_password = hashText(password)
+    hashed_password = hash_text(password)
 
-    # Create new User instance
     new_user = User(
         username=username,
         firstname=firstname,
@@ -73,14 +62,17 @@ def create_new_user(username, firstname, middlename, lastname, birthdate, email,
         password=hashed_password
     )
 
-    # Add new user to the database session and commit
     db.session.add(new_user)
     try:
         db.session.commit()
+        message = f"New user {new_user.id} added successfully"
+        log(message)
         return new_user
     except Exception as e:
         db.session.rollback()
         print(f"An error occurred: {e}")
+        message = f"An error occurred: {e} adding new user"
+        log(message)
         return None
 
 
@@ -91,8 +83,7 @@ def user_login(email, password):
     if user is None:
         return False, "Username not found."
 
-    # Check if the provided password matches the stored hash
-    if not checkHashedText(user.password, password):
+    if not check_hashed_text(user.password, password):
         return False, "Password is incorrect."
 
     # If the credentials are correct, set up the user session
@@ -100,10 +91,8 @@ def user_login(email, password):
     session['username'] = user.username
     user_ip = request.remote_addr
 
-    # Get the current date and time
-    now = datetime.now(pytz.utc)  # Using UTC timezone, adjust as necessary
+    now = datetime.now(pytz.utc)
 
-    # Add entry to online users table
     online_user_entry = Online_users(
         userId=user.id,
         ipaddress=user_ip,
@@ -112,57 +101,107 @@ def user_login(email, password):
     db.session.add(online_user_entry)
     try:
         db.session.commit()
+        message = f"User {user.id}  logged in"
+        log(message)
     except Exception as e:
         db.session.rollback()
         print(f"An error occurred while updating online users: {e}")
-        # You can decide how to handle this error. Maybe log the error or send a notification.
 
     return True, "Login successful."
 
+
+def check_username_exists(username):
+    user = db.session.query(User).filter(User.username == username).first()
+    if user is None:
+        return False
+    return True
+
+
 def remove_online_user():
     user_id = session.get('user_id')
-    if user_id:
-        try:
-            online_user = Online_users.query.filter_by(userId=user_id).first()
-            if online_user:
-                db.session.delete(online_user)
-                db.session.commit()
-                return True
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error during removing online user: {e}")
-            return False
-    return False
+    if _check_online_user_exists(user_id):
+        _remove_online_user(user_id)
+        message = f"User {user_id} has been logout"
+        log(message)
+        return True, message
+    message = f"User {user_id} has not been logged in"
+    log(message)
+    return False, message
+
+
+def _check_user_exists(user_id):
+    exists = db.session.query(User).filter(User.id == user_id).first()
+    if exists is None:
+        return False
+    return True
+
+
+def _check_online_user_exists(user_id):
+    exists = db.session.query(Online_users).filter(Online_users.userId == user_id).first()
+    if exists is None:
+        return False
+    return True
+
+
+def _remove_user(user_id):
+    db.session.query(User).filter(User.id == user_id).delete()
+    db.session.commit()
+
+
+def _remove_online_user(user_id):
+    db.session.query(Online_users).filter(Online_users.userId == user_id).delete()
+    db.session.commit()
+
+
 def remove_user_from_db(user_id):
-    try:
-        # Retrieve the user from the database
-        existing_user = db.session.query(User).filter(User.id == user_id).first()
-
-        # Check if the user exists
-        if existing_user is None:
-            return "User not found."
-
-        # Delete the user
-        db.session.delete(existing_user)
-
-        # Commit the changes to the database
-        db.session.commit()
-
-        return "User successfully removed."
-    except SQLAlchemyError as e:
-        # Rollback in case of exception
-        db.session.rollback()
-
-        # Log the specific database error
-        print(f"Database error occurred while removing user: {e}")
-
-        return f"Error removing user: {e}"
-    except Exception as e:
-        # Handle non-database related exceptions
-        print(f"An error occurred while removing user: {e}")
-
-        return f"Error removing user: {e}"
+    if _check_user_exists(user_id):
+        if _check_online_user_exists(user_id):
+            _remove_online_user(user_id)
+        _remove_user(user_id)
+    else:
+        return "User does not exist"
+    message = f"User {user_id} removed succesfully"
+    log(message)
+    return message
 
 
 def clear_session():
     session.clear()
+
+
+def _check_updating_username(user, username):
+    if user.username == username:
+        return True
+    exists = db.session.query(User).filter(User.username == username).first()
+    if exists is None:
+        return True
+    return False
+
+
+def _check_updating_email(user, email):
+    if user.email == email:
+        return True
+    exists = db.session.query(User).filter(User.email == email).first()
+    if exists is None:
+        return True
+    return False
+
+
+def update_user(user_id, data):
+    user = db.session.query(User).filter(User.id == user_id).first()
+    if data.get("username") is not None:
+        if not _check_updating_username(user, data["username"]):
+            return "username already exists"
+    if data.get("email") is not None:
+        if not _check_updating_email(user, data["email"]):
+            return "email already exists"
+    if data.get("password") is not None:
+        if not is_valid_password(data["password"]):
+            return "Password does not meet the required regulations."
+        data["password"] = hash_text(data["password"])
+    for key, value in data.items():
+        setattr(user, key, value)
+    db.session.commit()
+    message = "user updated successfully"
+    log(message)
+    return message

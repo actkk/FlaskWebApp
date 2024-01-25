@@ -2,8 +2,10 @@ from flask import Flask
 from flask_migrate import Migrate
 from app.models.dbmodel import db
 from app.routes.blueprint import user_blueprint
-from config import configdb
-import os
+from app.log.logger import setup_logging
+
+
+
 
 def create_app():
     app = Flask(__name__)
@@ -21,8 +23,10 @@ def create_app():
     # Create the database if it does not exist
     with app.app_context():
         db.create_all()
+    setup_logging(app)
 
     return app
+
 
 if __name__ == '__main__':
     app = create_app()
