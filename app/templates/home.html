@@ -2,31 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Navigation Page</title>
+    <title>Flask User Project</title>
     <style>
-        /* Add any additional styling you need here */
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 0.5em;
+        }
+        p {
+            margin-bottom: 1.5em;
+            font-size: 1.2em;
         }
         .link-list {
             list-style-type: none;
             padding: 0;
+            display: inline-block;
+            text-align: left;
         }
         .link-list li {
-            margin-bottom: 10px;
+            margin: 10px 0;
+        }
+        .link-list a {
+            text-decoration: none;
+            color: #fff;
+            background: rgba(0, 245, 172, 0.65);
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+            display: block; /* Butonları blok olarak ayarla */
+            width: 200px; /* Sabit genişlik */
+            text-align: center; /* Metni ortala */
+        }
+        .link-list a:hover {
+            background: #00f5ac;
         }
     </style>
 </head>
 <body>
-    <h1>Sa</h1>
-    <p>Select an option to proceed:</p>
+    <h1>HOŞ GELDİNİZ</h1>
+    <p>İLERLEMEK İÇİN BUNLARDAN BİRİNİ SEÇ:</p>
     <ul class="link-list">
         <li><a href="/user/list">User List</a></li>
         <li><a href="/user/create">Create User</a></li>
         <li><a href="/login">Login</a></li>
         <li><a href="/logout">Logout</a></li>
         <li><a href="/onlineusers">Online Users</a></li>
+        <li><a href="https://theuselessweb.com/">Useless Web</a></li>
+        <li><a href="/horse">Suprise</a></li>
+
     </ul>
 </body>
 </html>

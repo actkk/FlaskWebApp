@@ -27,9 +27,9 @@ def create_user():
         email = request.form['email']
         password = request.form['password']
         if not is_valid_email(email):
-            return "Invalid email address"
+            return "Invalid format for email address"
         if not is_valid_password(password):
-            return "Invalid password"
+            return "Invalid format for password\nPassword complexity should be least [A-Za-z0-9] and min 8 characters."
         if check_username_exists(username):
             return "Username already exists"
         user_created = create_new_user(username, firstname, middlename, lastname, birthdate, email, password)
@@ -91,3 +91,8 @@ def update_user_route(user_id):
 @user_blueprint.route('/')
 def home():
     return render_template('home.html')
+
+
+@user_blueprint.route('/horse')
+def horse():
+    return render_template('horse.html')
